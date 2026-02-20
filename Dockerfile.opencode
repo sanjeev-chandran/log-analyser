@@ -1,0 +1,43 @@
+# -------------------------------------------------------------------
+# OpenCode agent — headless server that proxies LLM requests.
+#
+# Runs `opencode serve` on port 4096 inside the Docker network.
+# The FastAPI api container talks to it via OPENCODE_SERVER_URL.
+#
+# Build:  docker build -f Dockerfile.opencode -t loganalyser-opencode .
+# -------------------------------------------------------------------
+FROM node:22-slim
+
+# Avoid interactive prompts, set sane defaults
+ENV DEBIAN_FRONTEND=noninteractive \
+    OPENCODE_PORT=4096 \
+    OPENCODE_HOSTNAME=0.0.0.0
+
+# Install opencode globally
+RUN npm install -g opencode-ai
+
+# Reuse the built-in `node` user (UID 1000) from the base image.
+# Create the directories OpenCode needs for config and state.
+RUN mkdir -p /home/node/.config/opencode && \
+    mkdir -p /home/node/.local/share/opencode && \
+    chown -R node:node /home/node
+
+# Working directory (opencode needs a project root to bind to)
+WORKDIR /workspace
+
+# Copy the opencode config into the workspace
+COPY opencode.json /workspace/opencode.json
+
+# Ensure the workspace is owned by the non-root user
+RUN chown -R node:node /workspace
+
+USER node
+
+EXPOSE ${OPENCODE_PORT}
+
+# Health check — hit the /global/health endpoint
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+    CMD node -e "fetch('http://localhost:${OPENCODE_PORT}/global/health').then(r=>{if(!r.ok)throw r.status}).catch(()=>process.exit(1))"
+
+# Start the headless OpenCode server
+CMD ["sh", "-c", "opencode serve --hostname ${OPENCODE_HOSTNAME} --port ${OPENCODE_PORT}"]

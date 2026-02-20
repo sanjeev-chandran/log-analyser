@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: loganalyser-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-loguser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-logpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-loganalyser}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-loguser} -d ${POSTGRES_DB:-loganalyser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - loganalyser-network
+
+  # OpenCode AI Agent — headless LLM server
+  #
+  # Runs `opencode serve` on port 4096.  The api container reaches it
+  # at http://opencode:4096 via the shared Docker network.
+  #
+  # Provider auth is passed in via environment variables.  Set the
+  # relevant key for whichever provider you configured in OpenCode
+  # (e.g. ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY).
+  opencode:
+    build:
+      context: .
+      dockerfile: Dockerfile.opencode
+    container_name: loganalyser-opencode
+    environment:
+      # Auth — set the key(s) for your chosen LLM provider
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # Optional: protect the server with basic auth
+      OPENCODE_SERVER_PASSWORD: ${OPENCODE_SERVER_PASSWORD:-}
+      OPENCODE_SERVER_USERNAME: ${OPENCODE_SERVER_USERNAME:-opencode}
+    volumes:
+      # Persist OpenCode state (sessions, auth tokens) across restarts
+      - opencode_data:/home/node/.local/share/opencode
+    ports:
+      - "8001:4096"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4096/global/health').then(r=>{if(!r.ok)throw r.status}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    networks:
+      - loganalyser-network
+    restart: unless-stopped
+
+  # FastAPI Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: loganalyser-api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://loguser:logpassword@postgres:5432/loganalyser}
+      DEBUG: ${DEBUG:-False}
+      APP_NAME: ${APP_NAME:-Log Analysis & RCA Generator}
+      # Point the analyzer at the OpenCode sidecar
+      OPENCODE_SERVER_URL: ${OPENCODE_SERVER_URL:-http://opencode:4096}
+      OPENCODE_PROVIDER_ID: ${OPENCODE_PROVIDER_ID:-}
+      OPENCODE_MODEL_ID: ${OPENCODE_MODEL_ID:-}
+      OPENCODE_SERVER_PASSWORD: ${OPENCODE_SERVER_PASSWORD:-}
+      OPENCODE_SERVER_USERNAME: ${OPENCODE_SERVER_USERNAME:-opencode}
+      OPENCODE_TIMEOUT: ${OPENCODE_TIMEOUT:-60.0}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opencode:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app:ro
+    networks:
+      - loganalyser-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  opencode_data:
+    driver: local
+
+networks:
+  loganalyser-network:
+    driver: bridge
