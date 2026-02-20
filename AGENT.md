@@ -1,6 +1,6 @@
 # AGENT.md - Agent Rules and Guidelines
 
-## Project: Log Analysis & RCA Generator
+## Project: Ops Agent
 
 ---
 
@@ -201,7 +201,7 @@ fastapi>=0.115.0
 - [ ] API documentation accessible
 
 ### Production Deployment
-1. Build Docker image: `docker build -t log-analyser:latest .`
+1. Build Docker image: `docker build -t ops-agent:latest .`
 2. Push to registry
 3. Update docker-compose.yml with image tag
 4. Deploy to server

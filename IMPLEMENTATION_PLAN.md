@@ -1,4 +1,4 @@
-# Log Analysis & RCA Generator - Implementation Plan
+# Ops Agent - Implementation Plan
 
 **Version:** MVP-1  
 **Date:** 2024  
@@ -24,7 +24,7 @@ A FastAPI-based service that accepts application-level error logs in JSON format
 ## Project Structure
 
 ```
-log-analyser/
+ops-agent/
 ├── alembic/
 │   ├── versions/
 │   └── env.py
@@ -286,7 +286,7 @@ Health check endpoint.
     ```
     DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/loganalyser
     DEBUG=True
-    APP_NAME=Log Analysis & RCA Generator
+    APP_NAME=Ops Agent
     ```
 
 19. **README.md**

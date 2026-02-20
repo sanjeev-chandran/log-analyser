@@ -25,7 +25,7 @@ if not DATABASE_URL:
     )
 
 # Application settings
-APP_NAME = os.getenv("APP_NAME", "Log Analysis & RCA Generator")
+APP_NAME = os.getenv("APP_NAME", "Ops Agent")
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 VERSION = os.getenv("VERSION", "1.0.0")
 

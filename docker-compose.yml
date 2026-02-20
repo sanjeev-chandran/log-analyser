@@ -66,7 +66,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://loguser:logpassword@postgres:5432/loganalyser}
       DEBUG: ${DEBUG:-False}
-      APP_NAME: ${APP_NAME:-Log Analysis & RCA Generator}
+      APP_NAME: ${APP_NAME:-Ops Agent}
       # Point the analyzer at the OpenCode sidecar
       OPENCODE_SERVER_URL: ${OPENCODE_SERVER_URL:-http://opencode:4096}
       OPENCODE_PROVIDER_ID: ${OPENCODE_PROVIDER_ID:-}

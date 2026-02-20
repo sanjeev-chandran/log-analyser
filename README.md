@@ -1,4 +1,4 @@
-# Log Analysis & RCA Generator
+# Ops Agent
 
 A FastAPI-based service for analyzing application logs and generating Root Cause Analysis (RCA) reports.
 
@@ -12,7 +12,7 @@ A FastAPI-based service for analyzing application logs and generating Root Cause
 
 1. **Clone and navigate to the project:**
    ```bash
-   cd log-analyser
+   cd ops-agent
    ```
 
 2. **Configure your LLM provider** (set at least one API key in `.env`):
@@ -115,7 +115,7 @@ curl http://localhost:8000/api/v1/analysis
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection URL | `postgresql+asyncpg://loguser:logpassword@postgres:5432/loganalyser` |
 | `DEBUG` | Enable debug mode | `False` |
-| `APP_NAME` | Application name | `Log Analysis & RCA Generator` |
+| `APP_NAME` | Application name | `Ops Agent` |
 | `POSTGRES_USER` | PostgreSQL username | `loguser` |
 | `POSTGRES_PASSWORD` | PostgreSQL password | `logpassword` |
 | `POSTGRES_DB` | PostgreSQL database name | `loganalyser` |
