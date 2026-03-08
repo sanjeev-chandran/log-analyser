@@ -107,7 +107,6 @@ class LogParser:
             "level": str(log_data.get("level", "")).upper(),
             "service": str(log_data.get("service", "")),
             "message": str(log_data.get("message", "")),
-            "trace_id": str(log_data.get("trace_id", "")) if log_data.get("trace_id") else ""
         }
         
         # Serialize to JSON string with sorted keys for consistency

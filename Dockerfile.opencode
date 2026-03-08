@@ -28,6 +28,14 @@ WORKDIR /workspace
 # Copy the opencode config into the workspace
 COPY opencode.json /workspace/opencode.json
 
+# Copy agent configurations (SRE agents and commands)
+COPY agent/ /workspace/agent/
+
+# Create .opencode directories and link agent files
+RUN mkdir -p /workspace/.opencode/agents /workspace/.opencode/commands && \
+    cp -r /workspace/agent/agent/* /workspace/.opencode/agents/ 2>/dev/null || true && \
+    cp -r /workspace/agent/commands/* /workspace/.opencode/commands/ 2>/dev/null || true
+
 # Ensure the workspace is owned by the non-root user
 RUN chown -R node:node /workspace
 

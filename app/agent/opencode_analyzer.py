@@ -33,37 +33,8 @@ logger = get_logger(__name__)
 # Prompt
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """\
-You are an expert Site Reliability Engineer (SRE) and root-cause analysis specialist.
-Your job is to analyse application log entries and produce a structured JSON diagnosis.
-
-RULES:
-1. Respond ONLY with a single valid JSON object — no markdown fences, no commentary, no explanation outside the JSON.
-2. The JSON must conform to the schema below exactly.
-3. "confidence" is a float between 0.0 and 1.0 representing your certainty.
-4. Each component must have a "type" that is one of:
-   service, database, cache, api, queue, external, infrastructure.
-5. Each component must have an "impact_level" that is one of:
-   critical, high, medium, low.
-6. Keep "summary" concise (1-2 sentences).
-7. "root_cause" should be a thorough but focused explanation (2-4 sentences).
-
-RESPONSE SCHEMA:
-{
-  "summary": "<string>",
-  "root_cause": "<string>",
-  "confidence": <float>,
-  "components": [
-    {
-      "name": "<string>",
-      "type": "<service|database|cache|api|queue|external|infrastructure>",
-      "impact_level": "<critical|high|medium|low>"
-    }
-  ]
-}
-
-IMPORTANT: Your entire response must be the JSON object and nothing else.
-"""
+# The system prompt is configured in OpenCode as the /sre command.
+# No need to inject it from this service — just prefix messages with /sre.
 
 
 def _build_user_prompt(log: ParsedLog) -> str:
@@ -109,7 +80,7 @@ class OpenCodeAnalyzer(AIAnalyzerInterface):
 
     def __init__(
         self,
-        server_url: str = "http://localhost:4096",
+        server_url: str = "http://localhost:8001",
         provider_id: Optional[str] = None,
         model_id: Optional[str] = None,
         password: Optional[str] = None,
@@ -146,7 +117,7 @@ class OpenCodeAnalyzer(AIAnalyzerInterface):
     # ------------------------------------------------------------------
 
     async def analyze(self, log: ParsedLog) -> RawAnalysis:
-        """Create a session on the OpenCode server, send the log, and parse the response."""
+        """Create a session on the OpenCode server, send the log via /sre command, and parse the response."""
         start = time.monotonic()
         session_id: Optional[str] = None
 
@@ -157,10 +128,7 @@ class OpenCodeAnalyzer(AIAnalyzerInterface):
             # 2. Create a fresh session
             session_id = await self._create_session()
 
-            # 3. Inject the system prompt (context-only, no AI reply)
-            await self._inject_system_prompt(session_id)
-
-            # 4. Send the log entry and get back the AI analysis
+            # 3. Send the log entry with /sre command and get back the AI analysis
             raw_text = await self._send_analysis_prompt(session_id, log)
 
             elapsed_ms = int((time.monotonic() - start) * 1000)
@@ -240,29 +208,11 @@ class OpenCodeAnalyzer(AIAnalyzerInterface):
         logger.debug("OpenCode session created", extra={"session_id": session_id})
         return session_id
 
-    async def _inject_system_prompt(self, session_id: str) -> None:
-        """Send the system prompt as a no-reply context message."""
-        resp = await self._client.post(
-            f"/session/{session_id}/message",
-            json={
-                "noReply": True,
-                "system": SYSTEM_PROMPT,
-                "parts": [{"type": "text", "text": SYSTEM_PROMPT}],
-            },
-        )
-        resp.raise_for_status()
-
     async def _send_analysis_prompt(self, session_id: str, log: ParsedLog) -> str:
-        """Send the log data as a plain-text prompt and return the AI's JSON string.
+        """Send the log data as a command and return the AI's JSON string.
 
-        We do NOT use ``format: { type: "json_schema" }`` because that
-        causes OpenCode to inject a ``StructuredOutput`` tool with
-        ``tool_choice``, and many providers/routers (e.g. OpenRouter)
-        reject that with a 404 / Bad Request.
-
-        Instead we rely on the system prompt to instruct the model to
-        return raw JSON.  This is universally compatible across all
-        providers.
+        Uses the /session/:id/command endpoint to execute the /sre command
+        with the log data as arguments.
 
         The HTTP response shape (from the OpenCode SDK types) is::
 
@@ -280,10 +230,10 @@ class OpenCodeAnalyzer(AIAnalyzerInterface):
         user_prompt = _build_user_prompt(log)
 
         body: Dict[str, Any] = {
-            "parts": [{"type": "text", "text": user_prompt}],
+            "command": "sre",
+            "arguments": user_prompt,
         }
 
-        # Optionally pin provider + model
         if self._provider_id and self._model_id:
             body["model"] = {
                 "providerID": self._provider_id,
@@ -291,17 +241,12 @@ class OpenCodeAnalyzer(AIAnalyzerInterface):
             }
 
         resp = await self._client.post(
-            f"/session/{session_id}/message",
+            f"/session/{session_id}/command",
             json=body,
         )
         resp.raise_for_status()
         data = resp.json()
 
-        print("--------------------------")
-        print(data)
-        print("--------------------------")
-
-        # Check for provider-level errors on the AssistantMessage
         info = data.get("info", {})
         error = info.get("error")
         if error:
