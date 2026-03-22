@@ -29,6 +29,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           model: opencode/big-pickle
+          agent: sre-orchestrator
           prompt: |
             Analyze the following log entry using the sre-orchestrator agent.
             
