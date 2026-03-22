@@ -1,4 +1,4 @@
-name: sre-agent
+name: sre-orchestrator
 
 on:
   workflow_dispatch:
