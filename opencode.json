@@ -4,7 +4,7 @@
   "agent": {
     "sre-orchestrator": {
       "description": "SRE Orchestrator agent for coordinating log analysis and RCA formatting",
-      "mode": "subagent",
+      "mode": "primary",
       "temperature": 0.1,
       "tools": {
         "write": false,
