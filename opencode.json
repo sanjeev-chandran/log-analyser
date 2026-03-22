@@ -6,7 +6,6 @@
       "description": "SRE Orchestrator agent for coordinating log analysis and RCA formatting",
       "mode": "primary",
       "temperature": 0.1,
-      "model": "gpt-5-nano",
       "tools": {
         "write": false,
         "edit": false,
