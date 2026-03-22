@@ -29,9 +29,12 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           model: opencode/big-pickle
-          agent: sre-orchestrator
           prompt: |
-            Analyze the following log entry using the sre-orchestrator agent.
+            @sre-orchestrator
+            
+            Analyze the following log entry:
             
             Log entry:
+            ```
             ${{ inputs.log_entry || github.event.client_payload.log_entry }}
+            ```
