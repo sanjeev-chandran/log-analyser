@@ -1,0 +1,36 @@
+name: sre-agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      log_entry:
+        description: 'Log entry to analyze (JSON format)'
+        required: true
+        type: string
+  repository_dispatch:
+    types: [sre-analysis-request]
+
+jobs:
+  sre-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run SRE Agent
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        with:
+          model: opencode/big-pickle
+          prompt: |
+            Analyze the following log entry using the sre-orchestrator agent.
+            
+            Log entry:
+            ${{ inputs.log_entry || github.event.client_payload.log_entry }}
