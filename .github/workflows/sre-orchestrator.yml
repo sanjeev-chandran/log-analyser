@@ -27,6 +27,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          USE_GITHUB_TOKEN: true
         with:
           model: opencode/big-pickle
           agent: sre-orchestrator
@@ -37,3 +38,4 @@ jobs:
             ```
             ${{ inputs.log_entry || github.event.client_payload.log_entry }}
             ```
+          use_github_token: true
