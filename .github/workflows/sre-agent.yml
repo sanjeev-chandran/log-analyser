@@ -31,8 +31,8 @@ jobs:
           model: opencode/big-pickle
           agent: sre-orchestrator
           prompt: |  
-            Analyze the following log entry:
-            
+            Analyze the following log entry by using the agent sre-orchestrator if agent not found don't analyze.
+            Also return the agents and tools used to achieve it
             Log entry:
             ```
             ${{ inputs.log_entry || github.event.client_payload.log_entry }}
