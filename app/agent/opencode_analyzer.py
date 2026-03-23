@@ -242,6 +242,7 @@ class OpenCodeAnalyzer(AIAnalyzerInterface):
 
         resp = await self._client.post(
             f"/session/{session_id}/command",
+            timeout=0,
             json=body,
         )
         resp.raise_for_status()
