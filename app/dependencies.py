@@ -26,7 +26,13 @@ def _build_ai_analyzer() -> AIAnalyzerInterface:
     used (talks to a running ``opencode serve`` instance); otherwise the
     lightweight :class:`MockAnalyzer` is returned so the app still works in
     development without an OpenCode server.
+    
+    The OpenCodeAnalyzer is configured with a MockAnalyzer fallback to provide
+    graceful degradation when the OpenCode server is unavailable.
     """
+    # Create mock analyzer as potential fallback
+    mock_analyzer = MockAnalyzer()
+    
     if config.OPENCODE_SERVER_URL:
         from app.agent.opencode_analyzer import OpenCodeAnalyzer
 
@@ -36,17 +42,22 @@ def _build_ai_analyzer() -> AIAnalyzerInterface:
             config.OPENCODE_PROVIDER_ID or "default",
             config.OPENCODE_MODEL_ID or "default",
         )
-        return OpenCodeAnalyzer(
+        analyzer = OpenCodeAnalyzer(
             server_url=config.OPENCODE_SERVER_URL,
             provider_id=config.OPENCODE_PROVIDER_ID,
             model_id=config.OPENCODE_MODEL_ID,
             # password=config.OPENCODE_SERVER_PASSWORD,
             # username=config.OPENCODE_SERVER_USERNAME,
             timeout=config.OPENCODE_TIMEOUT,
+            fallback_analyzer=mock_analyzer,
         )
+        logger.info(
+            "Configured OpenCodeAnalyzer with MockAnalyzer fallback for graceful degradation"
+        )
+        return analyzer
 
-    logger.info("OPENCODE_SERVER_URL not set — falling back to MockAnalyzer")
-    return MockAnalyzer()
+    logger.info("OPENCODE_SERVER_URL not set — using MockAnalyzer")
+    return mock_analyzer
 
 
 _ai_analyzer: AIAnalyzerInterface = _build_ai_analyzer()
